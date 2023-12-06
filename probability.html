@@ -1,0 +1,90 @@
+<html>
+<head>
+<script>
+
+function getQueryStringValue (key) {
+    return decodeURIComponent(window.location.search.replace(new RegExp("^(?:.*[&\\?]" + encodeURIComponent(key).replace(/[\.\+\*]/g, "\\$&") + "(?:\\=([^&]*))?)?.*$", "i"), "$1"));  
+}
+
+function go(){
+    var output = ""
+    
+    var decksize = getQueryStringValue("decksize")
+    var goodcards = getQueryStringValue("goodcards")
+    
+    const decks = []    
+
+    //let an int represent a deck where each bit is 0 = bad card, 1 = good card
+    //loop through all possible decks of given decksize
+    for (let i = 0; i < 2**decksize; i++)
+    {
+        //add each deck with the given number of good cards to our decks array
+        if (bitcount(i) == goodcards)
+            decks.push(i);
+    }
+    
+    //output header of csv
+    output += ","
+    for (let i = 0; i <= goodcards; i++)
+        output += i + ","
+    output += "<br/>"
+
+    //loop through each skill value
+    for (let i = 1; i <= decksize; i++)
+    {
+        //initialize counts array
+        //counts how many decks succeed a check for each difficulty
+        const counts = []
+        for (let j = 0; j <= goodcards; j++)
+            counts[j] = 0
+            
+        //loop through each deck
+        for (let j=0; j < decks.length; j++)
+        {
+            //draw i cards by shifting all but i bits to the right 
+            var draw = decks[j] >> (decksize - i)
+            
+            //count as success for each difficulty <= how many set bits we have left
+            for (let k = 0; k <= bitcount(draw); k++)
+                counts[k]++
+        }
+        
+        //output the results
+        output += i + ","
+        for (let j = 0; j <= goodcards; j++)
+            output += counts[j]*100.0 / decks.length + ","
+        output += "<br/>"
+    }
+
+    document.getElementById("output").innerHTML = output
+}
+
+function bitcount(i)
+{
+    var c = 0
+    while (i != 0)
+    {
+        c += i & 1
+        i = i >> 1
+    }
+    return c
+}
+
+
+</script>
+</head>
+<body id="body" onLoad="go()">
+
+<form method="put" action="probability.html">
+
+Decksize: <input type="number" name="decksize" value="22" /><br/>
+Good Cards: <input type="number" name="goodcards" value="11" />
+<input type="submit" value="calculate" />
+
+</form>
+
+<p id="output" />
+
+</body>
+</html> 
+
