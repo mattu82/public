@@ -6,11 +6,19 @@ function getQueryStringValue (key) {
     return decodeURIComponent(window.location.search.replace(new RegExp("^(?:.*[&\\?]" + encodeURIComponent(key).replace(/[\.\+\*]/g, "\\$&") + "(?:\\=([^&]*))?)?.*$", "i"), "$1"));  
 }
 
+function setInputValue (name,value)
+{
+    document.getElementById(name).setAttribute("value",value)
+}
+
 function go(){
     var output = ""
     
-    var decksize = getQueryStringValue("decksize")
-    var goodcards = getQueryStringValue("goodcards")
+    decksize = parseInt(getQueryStringValue("decksize"))
+    goodcards = parseInt(getQueryStringValue("goodcards"))
+    
+    setInputValue("decksize",decksize)
+    setInputValue("goodcards",goodcards)
     
     const decks = []    
 
@@ -23,14 +31,16 @@ function go(){
             decks.push(i);
     }
     
-    //output header of csv
-    output += ","
-    for (let i = 0; i <= goodcards; i++)
-        output += i + ","
-    output += "<br/>"
+    //output header of table
+    output += "<table border=1><tr><td rowspan=2 colspan=2 /><th colspan=" + goodcards + ">Difficulty</th></tr>"
+    output += "<tr>"
+    for (let i = 1; i <= goodcards; i++)
+        output += "<th>" + i + "</th>"
+    output += "</tr>"
+    output += "<tr><th rowspan=" + decksize + ">Skill</th>"
 
     //loop through each skill value
-    for (let i = 1; i <= decksize; i++)
+    for (let skill = 1; skill < decksize; skill++)
     {
         //initialize counts array
         //counts how many decks succeed a check for each difficulty
@@ -41,8 +51,8 @@ function go(){
         //loop through each deck
         for (let j=0; j < decks.length; j++)
         {
-            //draw i cards by shifting all but i bits to the right 
-            var draw = decks[j] >> (decksize - i)
+            //draw cards by shifting all but 'skill' bits to the right 
+            var draw = decks[j] >> (decksize - skill)
             
             //count as success for each difficulty <= how many set bits we have left
             for (let k = 0; k <= bitcount(draw); k++)
@@ -50,13 +60,52 @@ function go(){
         }
         
         //output the results
-        output += i + ","
-        for (let j = 0; j <= goodcards; j++)
-            output += counts[j]*100.0 / decks.length + ","
-        output += "<br/>"
+        output += "<tr><th>" + skill + "</th>"
+        for (let difficulty = 1; difficulty <= goodcards; difficulty++)
+        {
+            if (difficulty > skill)
+                output += '<td bgcolor="#000000" style="color:#ffffff" >0</td>'
+            else if (skill >= decksize - goodcards + difficulty)
+                output += '<td >100</td>'
+            else
+            {
+                probability = counts[difficulty]/decks.length
+                output += '<td bgcolor="#' + tocolor(probability) + '">' + (100.0*probability).toFixed(4) + '</td>'
+            }
+        }
+        output += "</tr>"
     }
+    
+    output += "</table>"
 
     document.getElementById("output").innerHTML = output
+}
+
+function tocolor(probability)
+{
+    var r="00"
+    var g="00"
+    var b="00"
+    
+    if (probability < .5)
+    {
+        r = "ff"
+
+        g = parseInt(.5 + 510*probability).toString(16)
+        if (g.length < 2)
+            g = "0" + g
+        
+    }else
+    {
+        r = parseInt(510.5 - 510*probability).toString(16)
+        if (r.length < 2)
+            r = "0" + r
+            
+        g = "ff"
+    }
+    
+    return r + g + b
+
 }
 
 function bitcount(i)
@@ -77,9 +126,11 @@ function bitcount(i)
 
 <form method="put" action="probability.html">
 
-Decksize: <input type="number" name="decksize" value="22" /><br/>
-Good Cards: <input type="number" name="goodcards" value="11" />
-<input type="submit" value="calculate" />
+<table>
+<tr><td align="right">Decksize:</td><td><input type="number" id="decksize" name="decksize" min=0 max=32 /></td></tr>
+<tr><td align="right">Good Cards:</td><td><input type="number" id="goodcards" name="goodcards" min=0 max=32 /></td></tr>
+<tr><td align="center" colspan=2><input type="submit" value="Calculate" /></td></tr>
+</table>
 
 </form>
 
