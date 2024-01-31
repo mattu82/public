@@ -1,4 +1,3 @@
-
 <html>
 <head>
 <script>
@@ -23,6 +22,15 @@ function go(){
     
     const decks = []    
 
+    //let an int represent a deck where each bit is 0 = bad card, 1 = good card
+    //loop through all possible decks of given decksize
+    for (let i = 0; i < 2**decksize; i++)
+    {
+        //add each deck with the given number of good cards to our decks array
+        if (bitcount(i) == goodcards)
+            decks.push(i);
+    }
+    
     //output header of table
     output += "<table border=1><tr><td rowspan=2 colspan=2 /><th colspan=" + goodcards + ">Difficulty</th></tr>"
     output += "<tr>"
@@ -34,54 +42,43 @@ function go(){
     //loop through each skill value
     for (let skill = 1; skill < decksize; skill++)
     {
-        probability = 0;
-        
-        const probabilities = []
-        for (let difficulty = goodcards; difficulty >= 1; difficulty--)
-        {
-            if (difficulty <= skill)
-                probability += choose(goodcards,difficulty)*choose(decksize-goodcards,skill-difficulty)/choose(decksize,skill)
+        //initialize counts array
+        //counts how many decks succeed a check for each difficulty
+        const counts = []
+        for (let j = 0; j <= goodcards; j++)
+            counts[j] = 0
             
-            probabilities[difficulty] = probability
-        }
-    
-        //output the probabilities
-        output += "<tr><th>" + skill + "</th>"
-        for (let k = 1; k <= goodcards; k++)
+        //loop through each deck
+        for (let j=0; j < decks.length; j++)
         {
-            if (k > skill)
+            //draw cards by shifting all but 'skill' bits to the right 
+            var draw = decks[j] >> (decksize - skill)
+            
+            //count as success for each difficulty <= how many set bits we have left
+            for (let k = 0; k <= bitcount(draw); k++)
+                counts[k]++
+        }
+        
+        //output the results
+        output += "<tr><th>" + skill + "</th>"
+        for (let difficulty = 1; difficulty <= goodcards; difficulty++)
+        {
+            if (difficulty > skill)
                 output += '<td bgcolor="#000000" style="color:#ffffff" >0</td>'
-            else if (skill >= decksize - goodcards + k)
+            else if (skill >= decksize - goodcards + difficulty)
                 output += '<td >100</td>'
             else
             {
-                output += '<td bgcolor="#' + tocolor(probabilities[k]) + '">' + (100.0*probabilities[k]).toFixed(4) + '</td>'
+                probability = counts[difficulty]/decks.length
+                output += '<td bgcolor="#' + tocolor(probability) + '">' + (100.0*probability).toFixed(4) + '</td>'
             }
         }
         output += "</tr>"
     }
+    
+    output += "</table>"
 
     document.getElementById("output").innerHTML = output
-}
-
-function ffactorial(x, n) {
-    r = 1
-    
-    while (n > 0)
-    {
-        r *= x
-        x--
-        n--
-    }
-    
-    return r
-}
-
-function choose(n, k){
-    if (k <= n/2) 
-        return ffactorial(n,k) / ffactorial(k,k)
-    
-    return ffactorial(n,(n-k)) / ffactorial(n-k,n-k)    
 }
 
 function tocolor(probability)
@@ -111,17 +108,27 @@ function tocolor(probability)
 
 }
 
+function bitcount(i)
+{
+    var c = 0
+    while (i != 0)
+    {
+        c += i & 1
+        i = i >> 1
+    }
+    return c
+}
 
 
 </script>
 </head>
 <body id="body" onLoad="go()">
 
-<form method="put" action="probability.html">
+<form method="put" action="probability_old.html">
 
 <table>
-<tr><td align="right">Decksize:</td><td><input type="number" id="decksize" name="decksize" min=0 /></td></tr>
-<tr><td align="right">Good Cards:</td><td><input type="number" id="goodcards" name="goodcards" min=0 /></td></tr>
+<tr><td align="right">Decksize:</td><td><input type="number" id="decksize" name="decksize" min=0 max=32 /></td></tr>
+<tr><td align="right">Good Cards:</td><td><input type="number" id="goodcards" name="goodcards" min=0 max=32 /></td></tr>
 <tr><td align="center" colspan=2><input type="submit" value="Calculate" /></td></tr>
 </table>
 
@@ -131,4 +138,3 @@ function tocolor(probability)
 
 </body>
 </html> 
-
